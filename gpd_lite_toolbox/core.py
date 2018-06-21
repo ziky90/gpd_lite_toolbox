@@ -3,26 +3,23 @@
 gpd_lite_toolboox
 @author: mthh
 """
-import shapely.ops
 import numpy as np
 import pandas as pd
-from sklearn.cluster import KMeans
-from shapely.geometry import Point, Polygon, MultiPolygon
+import shapely.ops
 from geopandas import GeoDataFrame
+from shapely.geometry import Point, Polygon, MultiPolygon
+from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import pairwise_distances
 
 from .utils import (
-    db_connect, Borderiz, dbl_range, ftouches_byid, l_shared_border,
-    make_index, nrepeat, mparams, dorling_radius, dorling_radius2,
-    display_prop_borders
-    )
+    db_connect, Borderiz, dbl_range, make_index, nrepeat, mparams,
+    dorling_radius)
 
 __all__ = ['get_borders', 'find_borders', 'transform_cartogram', 'dissolve',
            'intersects_byid', 'multi_to_single', 'dumb_multi_to_single',
            'snap_to_nearest', 'read_spatialite', 'match_lines',
            'mean_coordinates', 'non_contiguous_cartogram', 'make_grid',
-           'gridify_data', 'random_pts_on_surface', 'access_isocrone',
-           'display_prop_borders']
+           'gridify_data', 'random_pts_on_surface', 'access_isocrone']
 
 
 def match_lines(gdf1, gdf2, method='cheap_hausdorff', limit=None):
@@ -591,8 +588,8 @@ def make_grid(gdf, height, cut=True):
     from shapely.ops import unary_union
     xmin, ymin = [i.min() for i in gdf.bounds.T.values[:2]]
     xmax, ymax = [i.max() for i in gdf.bounds.T.values[2:]]
-    rows = ceil((ymax-ymin) / height)
-    cols = ceil((xmax-xmin) / height)
+    rows = int(ceil((ymax-ymin) / height))
+    cols = int(ceil((xmax-xmin) / height))
 
     x_left_origin = xmin
     x_right_origin = xmin + height
@@ -613,17 +610,10 @@ def make_grid(gdf, height, cut=True):
         x_left_origin = x_left_origin + height
         x_right_origin = x_right_origin + height
     if cut:
-        if all(gdf.eval(
-            "geometry.type =='Polygon' or geometry.type =='MultiPolygon'")):
-            res = GeoDataFrame(
-                geometry=pd.Series(res_geoms).apply(lambda x: Polygon(x)),
-                crs=gdf.crs
-                ).intersection(unary_union(gdf.geometry).convex_hull)
-        else:
-            res = GeoDataFrame(
-                geometry=pd.Series(res_geoms).apply(lambda x: Polygon(x)),
-                crs=gdf.crs
-                ).intersection(unary_union(gdf.geometry).convex_hull)
+        res = GeoDataFrame(
+            geometry=pd.Series(res_geoms).apply(lambda x: Polygon(x)),
+            crs=gdf.crs
+            ).intersection(unary_union(gdf.geometry).convex_hull)
         res = res[res.geometry.type == 'Polygon']
         res.index = [i for i in range(len(res))]
         return GeoDataFrame(geometry=res)
